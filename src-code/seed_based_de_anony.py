@@ -42,6 +42,8 @@ for lnode in lgraph.nodes:
     similarity_scores = dict()
     for rnode in rgraph.nodes:
         similarity_scores[rnode] = utils.get_matched_neigbr_count(lnode, rnode)
+
+    if Utils.eccentricity(similarity_scores) < THETA: continue
     max_score = max(similarity_scores.values())  # maximum score
     max_scoring_nodes = [k for k, v in similarity_scores.items() if v == max_score]  # getting all keys containing the `maximum`
 
@@ -50,14 +52,6 @@ for lnode in lgraph.nodes:
     print("Picked max rnode: ", picked_max_score_rnode)
     break
 '''
-    if Utils.eccentricity(scores[lnode]) < THETA: continue
-    # pick node from rgraph.nodes where  scores[lnode][node] = max(scores[lnode])
-    #new_mapping_rnode = max(range(len(scores[0])), key=scores[0].__getitem__)
-    new_mapping_rnode = scores[0].argmax()
-
-    print("new mapping lnode : ", lnode)
-    print("new mapping rnode : ", new_mapping_rnode)
-    break
 #seeds.add_edge(lnode, new_mapping_rnode)
 '''
 

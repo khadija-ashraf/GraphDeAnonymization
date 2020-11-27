@@ -32,26 +32,24 @@ class Utils:
         return matched_neighbr_count
 
     @staticmethod
-    def eccentricity(lnode_scores):
+    def eccentricity(similarity_scores):
 
-        if len(lnode_scores) < 2:
-            print(" Invalid Input ")
+        if len(similarity_scores) < 2:
+           # print(" Invalid Input ")
             return 0
-        arr_size = len(lnode_scores)
+        arr_size = len(similarity_scores)
         largest = second = -2454635434
 
         # Find the largest element
-        #for i in range(0, arr_size):
-        largest = max(lnode_scores)
+        largest = max(similarity_scores.values())
 
         # Find the second largest element
-        for i in range(0, arr_size):
-            if lnode_scores[i] != largest:
-                second = max(second, lnode_scores[i])
+        for value in similarity_scores.values():
+            if value != largest:
+                second = max(second, value)
 
-        standard_dev = statistics.stdev(lnode_scores)
-
-        print("Standard Deviation: ", standard_dev)
+        standard_dev = statistics.stdev(similarity_scores.values())
+        print('Standard Deviation: {0:.2f}'.format(standard_dev))
         if second == -2454635434 or (largest - second) == 0 or standard_dev == 0:
             return 0
-        return (largest - second) / statistics.stdev(lnode_scores)
+        return (largest - second) / standard_dev
