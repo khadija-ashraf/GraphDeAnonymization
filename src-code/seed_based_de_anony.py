@@ -59,19 +59,19 @@ Utils.populate_visit_dict(rgraph_visit_dict, rgraph, right_seeds)
 
 for lnode in lgraph.nodes:
     if lgraph_visit_dict[lnode]: continue  #lnode is already mapped
-    similarity_scores = Utils.matchScores(lgraph, rgraph, left_seeds, \
+    similarity_scores = Utils.matchScores(lgraph, rgraph,
                                           lgraph_visit_dict, rgraph_visit_dict, \
-                                          right_seeds, mapping, lnode)
+                                          mapping, lnode)
 
     if Utils.eccentricity(similarity_scores) < THETA: continue
     max_score = max(similarity_scores.values())  # maximum score
     max_scoring_nodes = [k for k, v in similarity_scores.items() if v == max_score]  # getting all keys containing the `maximum`
 
-    #print('%d is max score, and %d number of nodes scored max ' %(max_score,len(max_scoring_nodes)))
     if len(max_scoring_nodes) < 0: continue
     picked_max_score_rnode = max_scoring_nodes[0] # the first node
-    #print('Picked max rnode: %d is for lnode: %d ' % (picked_max_score_rnode, lnode))
     mapping.add_edge(lnode, picked_max_score_rnode)
+    lgraph_visit_dict[lnode] = True
+    rgraph_visit_dict[picked_max_score_rnode] = True
 
     i = i + 1
     if i == 3:
