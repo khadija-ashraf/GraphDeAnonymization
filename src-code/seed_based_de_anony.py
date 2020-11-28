@@ -2,9 +2,10 @@ import networkx as nx
 from Utils import *
 import numpy as np
 import time
-import operator
+import gc
 
-THETA = 1.0
+
+THETA = 0.1
 START_TIME = time.time()
 
 G1 = nx.read_edgelist('input/G1.edgelist', comments='#', delimiter = ' ',
@@ -22,13 +23,15 @@ directed_G2 = G2.is_directed()
 # mapping between G1 and G2 nodes are also some kind of edges. This idea will help us make
 # many operations (i.e., finding a node, finding neighbors, finding corresponding overlapping node,
 # adding new mappings, etc.) on nodes easier
-seeds = nx.read_edgelist('input/seed_node_pairs.txt', comments='#', delimiter = ' ',
-                      create_using=nx.DiGraph(), nodetype=int)
+mapping = nx.read_edgelist('input/seed_node_pairs.txt', comments='#', delimiter =' ',
+                           create_using=nx.DiGraph(), nodetype=int)
 
-lgraph = G1
-rgraph = G2
+mapping_image = nx.DiGraph.reverse(mapping, copy=True)
 
-utils = Utils(lgraph, rgraph, seeds)
+# Reading the seeds separately into different mapping lists
+left_seeds = np.loadtxt('input/seed_node_pairs.txt').astype(int)[:, 0]
+right_seeds = np.loadtxt('input/seed_node_pairs.txt').astype(int)[:, 1]
+
 
 
 # Propagation:
@@ -40,28 +43,47 @@ utils = Utils(lgraph, rgraph, seeds)
 # Revisiting nodes: Following the authors approach we are iterating for all nodes
 # in lgraph to find best mapping among all rgraph nodes.
 i = 0
+#target_to_aux = Utils(G1, G2, seeds)
+lgraph = G1
+rgraph = G2
+
+i = 0
+lgraph_visit_dict = dict()
+rgraph_visit_dict = dict()
+
+# We assume all left nodes in the seed_node_pairs.txt are from G1 and all
+# right nodes are from G2
+
+Utils.populate_visit_dict(lgraph_visit_dict, lgraph, left_seeds)
+Utils.populate_visit_dict(rgraph_visit_dict, rgraph, right_seeds)
+
 for lnode in lgraph.nodes:
-    similarity_scores = dict()
-    for rnode in rgraph.nodes:
-        similarity_scores[rnode] = utils.get_similarity_score(lnode, rnode)
+    if lgraph_visit_dict[lnode]: continue  #lnode is already mapped
+    similarity_scores = Utils.matchScores(lgraph, rgraph, left_seeds, \
+                                          lgraph_visit_dict, rgraph_visit_dict, \
+                                          right_seeds, mapping, lnode)
 
     if Utils.eccentricity(similarity_scores) < THETA: continue
     max_score = max(similarity_scores.values())  # maximum score
     max_scoring_nodes = [k for k, v in similarity_scores.items() if v == max_score]  # getting all keys containing the `maximum`
 
     #print('%d is max score, and %d number of nodes scored max ' %(max_score,len(max_scoring_nodes)))
+    if len(max_scoring_nodes) < 0: continue
     picked_max_score_rnode = max_scoring_nodes[0] # the first node
     #print('Picked max rnode: %d is for lnode: %d ' % (picked_max_score_rnode, lnode))
-    seeds.add_edge(lnode, picked_max_score_rnode)
-    i = i+1
-    if i == 10:
-        break
-# writing final mapped seed edgelist
-#nx.write_edgelist(seeds, "AshrafSeedBased.txt", data=False)
+    mapping.add_edge(lnode, picked_max_score_rnode)
 
-sorted_seed_pairs = sorted(seeds.edges, key=lambda x: x[0])
+    i = i + 1
+    if i == 3:
+        break
+
+
+# writing final mapped seed edgelist
+
+sorted_seed_pairs = sorted(mapping.edges, key=lambda x: x[0])
 with open('output/AshrafSeedBased.txt', 'w') as fp:
     fp.write('\n'.join('%s %s' % x for x in sorted_seed_pairs))
 
-
+collected = gc.collect()
+print("Garbage collector: collected", "%d objects." % collected)
 print("--- Total Execution time : %s seconds ---" % (time.time() - START_TIME))
