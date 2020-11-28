@@ -2,6 +2,7 @@ import networkx as nx
 from Utils import *
 import numpy as np
 import time
+import operator
 
 THETA = 1.0
 START_TIME = time.time()
@@ -38,21 +39,29 @@ utils = Utils(lgraph, rgraph, seeds)
 
 # Revisiting nodes: Following the authors approach we are iterating for all nodes
 # in lgraph to find best mapping among all rgraph nodes.
+i = 0
 for lnode in lgraph.nodes:
     similarity_scores = dict()
     for rnode in rgraph.nodes:
-        similarity_scores[rnode] = utils.get_matched_neigbr_count(lnode, rnode)
+        similarity_scores[rnode] = utils.get_similarity_score(lnode, rnode)
 
     if Utils.eccentricity(similarity_scores) < THETA: continue
     max_score = max(similarity_scores.values())  # maximum score
     max_scoring_nodes = [k for k, v in similarity_scores.items() if v == max_score]  # getting all keys containing the `maximum`
 
-    print('%d is max score, and %d number of nodes scored max ' %(max_score,len(max_scoring_nodes)))
+    #print('%d is max score, and %d number of nodes scored max ' %(max_score,len(max_scoring_nodes)))
     picked_max_score_rnode = max_scoring_nodes[0] # the first node
-    print("Picked max rnode: ", picked_max_score_rnode)
-    break
-'''
-#seeds.add_edge(lnode, new_mapping_rnode)
-'''
+    #print('Picked max rnode: %d is for lnode: %d ' % (picked_max_score_rnode, lnode))
+    seeds.add_edge(lnode, picked_max_score_rnode)
+    i = i+1
+    if i == 10:
+        break
+# writing final mapped seed edgelist
+#nx.write_edgelist(seeds, "AshrafSeedBased.txt", data=False)
+
+sorted_seed_pairs = sorted(seeds.edges, key=lambda x: x[0])
+with open('output/AshrafSeedBased.txt', 'w') as fp:
+    fp.write('\n'.join('%s %s' % x for x in sorted_seed_pairs))
+
 
 print("--- Total Execution time : %s seconds ---" % (time.time() - START_TIME))
