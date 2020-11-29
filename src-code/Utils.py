@@ -11,8 +11,7 @@ class Utils:
 
     @staticmethod
     def matchScores(lgraph, rgraph,
-                    lgraph_visit_dict, rgraph_visit_dict, \
-                    mapping, lnode):
+                    lgraph_visit_dict, rgraph_visit_dict, mapping, lnode):
         scores = defaultdict(lambda: 0)
 
         # find all out-degree neighbors of lnode
@@ -35,7 +34,8 @@ class Utils:
             # find out-degree neighbors of each rnode
             rnode_out_neighbrs = list(rgraph.successors(rnode))
             # filterout all mapped neighbors among 'rnode_out_neighbrs'
-            r_mapped_out_neighbr = Utils.filterMappedNeighbrs(rnode_out_neighbrs, rgraph_visit_dict)
+            r_mapped_out_neighbr = Utils.filterMappedNeighbrs(rnode_out_neighbrs, \
+                                                              rgraph_visit_dict)
             # for every 'l_mapped_out_neighbr' node check if it can be found as a pair with
             # any one of the 'r_mapped_out_neighbr' in the seeds_node_pairs
             match_count = 0
@@ -70,43 +70,6 @@ class Utils:
             scores[rnode] = scores[rnode] + match_cnt_normalized
 
         return scores
-
-    @staticmethod
-    def get_similarity_score(lgraph, rgraph, mapping, lnode):
-        score = defaultdict(lambda: 0)
-        lnode_outgoing_neighbrs = list(lgraph.successors(lnode))
-        lnode_incoming_neighbrs = list(lgraph.predecessors(lnode))
-
-        out_neighbr_match_count = 0
-        for rnode in rgraph.nodes:
-            rnode_outgoing_neighbrs = list(rgraph.successors(rnode))
-            for lnode_out_neighbr in lnode_outgoing_neighbrs:
-                if lnode_out_neighbr not in mapping: continue
-                mapped_rseed_node = mapping[lnode_out_neighbr]
-                if mapped_rseed_node and list(mapped_rseed_node)[0] in rnode_outgoing_neighbrs:
-                    out_neighbr_match_count = out_neighbr_match_count + 1
-
-            rnode_out_degree = len(rnode_outgoing_neighbrs)
-            matching_cnt_normalized = 0;
-            if rnode_out_degree > 0:
-                matching_cnt_normalized = out_neighbr_match_count / math.sqrt(rnode_out_degree)
-            score[rnode] = score[rnode] + matching_cnt_normalized
-
-            rnode_incoming_neighbrs = list(rgraph.predecessors(rnode))
-
-            in_neighbr_match_count = 0
-            for lnode_in_neighbr in lnode_incoming_neighbrs:
-                if lnode_in_neighbr not in mapping: continue
-                mapped_rseed_node = mapping[lnode_in_neighbr]
-                if mapped_rseed_node and list(mapped_rseed_node)[0] in rnode_incoming_neighbrs:
-                    in_neighbr_match_count = in_neighbr_match_count + 1
-
-            rnode_in_degree = len(rnode_incoming_neighbrs)
-            matching_cnt_normalized = 0;
-            if rnode_in_degree > 0:
-                matching_cnt_normalized = in_neighbr_match_count / math.sqrt(rnode_in_degree)
-            score[rnode] = score[rnode] + matching_cnt_normalized
-        return score
 
     @staticmethod
     def eccentricity(similarity_scores):
