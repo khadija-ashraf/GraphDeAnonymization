@@ -5,7 +5,7 @@ import time
 import gc
 
 
-THETA = 0.1
+THETA = 0.2
 START_TIME = time.time()
 
 try:
@@ -14,7 +14,6 @@ try:
                           create_using=nx.DiGraph(), nodetype=int)
 
     directed_G1 = G1.is_directed()
-
 
     G2 = nx.read_edgelist('input/G2.edgelist', comments='#', delimiter = ' ',
                           create_using=nx.DiGraph(), nodetype=int)
@@ -94,7 +93,7 @@ try:
         rgraph_visit_dict[picked_max_score_rnode] = True
 
         # i = i + 1
-        # if i == 1000:
+        # if i == 3:
         #     break
 
 finally:
