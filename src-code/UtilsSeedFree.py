@@ -4,11 +4,11 @@ from scipy import spatial
 class UtilsSeedFree:
     # GetTopSimilarity(i, Λu, GAMMA) is a function to return 'GAMMA' no. of users
     @staticmethod
-    def get_top_similarity(i, Au, GAMMA, similarities):
-        top_similar_auxilary_nodes = []
-        # sort the similarity score dict in decreasing order
-        sorted_simi = sorted(similarities, key=similarities.__getitem__, reverse=True)
-        # get the GAMMA no. of highest scoring j nodes
+    # def get_top_similarity(i, Au, GAMMA, similarities):
+    #     top_similar_auxilary_nodes = []
+    #     # sort the similarity score dict in decreasing order
+    #     sorted_simi = sorted(similarities, key=similarities.__getitem__, reverse=True)
+    #     # get the GAMMA no. of highest scoring j nodes
 
 
     @staticmethod
@@ -88,6 +88,11 @@ class UtilsSeedFree:
         alpha = math.log(avg_node_numbers, 2)
         return alpha
 
+    @staticmethod
+    def get_neighbrs(G, node):
+        return G.adj[node]
+
+    @staticmethod
     def analysing_degree(G1, G2):
 
         directed_G1 = G1.is_directed()
