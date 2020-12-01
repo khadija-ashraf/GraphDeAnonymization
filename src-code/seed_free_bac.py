@@ -69,31 +69,35 @@ if max_degree_val_G1 > max_degree_val_G2:
 else:
     BETA = max_degree_val_G2
 
-
-j_features = dict()
-for j in Au:
-    j_features[j] = SFUtils.derive_structural_features(G2, j, degree_sequence_G2, BETA, TOP_K, nx)
-
 iteration = 0
 da_scheme = dict()
 struct_simi = dict()
-candidate_visit_map = dict.fromkeys(Au, False)
-
 for i in Aa:
     da_scheme[i] = dict() # initializing
+    ####### find fd_i, Degree
+    fd_i = SFUtils.get_degree(G1, i)
+    ####### find fn_i, Neighborhood
+    fn_i  = SFUtils.get_neighborhood(G1, i, BETA)
+    ####### find fK_i, Top-K reference distance
+    fK_i = SFUtils.get_top_k_reference_dist(G1, i, degree_sequence_G1, TOP_K, nx)
+    ####### find fl_i, Landmark reference distance
+    fl_i = []
+
     struct_simi[i] = dict.fromkeys(Au, 0)
 
-    fd_i, fn_i, fK_i, fl_i = SFUtils.derive_structural_features(G1, i, degree_sequence_G1, BETA, TOP_K, nx)
-
+    candidate_visit_map = dict.fromkeys(Au, 0)
     for j in Au:
-        fd_j, fn_j, fK_j, fl_j = j_features[j]
+        ####### find fd_j, Degree
+        fd_j = SFUtils.get_degree(G2, j)
+        ####### find fn_j, Neighborhood
+        fn_j = SFUtils.get_neighborhood(G2, j, BETA)
+        ####### find fK_j, Top-K reference distance
+        fK_j = SFUtils.get_top_k_reference_dist(G2, j, degree_sequence_G2, TOP_K, nx)
+        ####### find fl_i, Landmark reference distance
+        fl_j = []
 
         # calculate the structural similarity 'phi(i,j)'
-        '''
-        K_i = list(fK_i.values())
-        K_j = list(fK_j.values())
-        struct_simi[i][j] = SFUtils.get_structural_similarity(fd_i, fd_j, fn_i, fn_j, K_i, fK_j, fl_i, fl_j, c1, c2, c3, c4)
-        '''
+
         degree_similarity = 1 - spatial.distance.cosine(fd_i, fd_j)
         if math.isnan(degree_similarity): continue
         struct_simi[i][j] += c1 * degree_similarity
@@ -144,13 +148,13 @@ for i in Aa:
             min_da_error = da_error
             min_error_j = c
 
-    if min_error_j is None: continue
+
     da_scheme[i][min_error_j] = min_da_error
     candidate_visit_map[min_error_j] = True
 
-    # iteration = iteration + 1
-    # if iteration == 3:
-    #     break
+    iteration = iteration + 1
+    if iteration == 3:
+        break
 
 mapping_cnt = 0
 for i in da_scheme.keys():
@@ -165,7 +169,12 @@ for i in da_scheme.keys():
 #     break
 
 
-nx.write_edgelist(mapping, "output/AshrafSeedFree.edgelist", data=False)
+
+
+
+#Va = [x for x in Va if x not in Aa]
+#Aa = [n for n in degree_list if degree_list[n] >= lower_bound_deg_rng]
+
 
 process = psutil.Process(os.getpid())
 print(process.memory_info().rss)  # in bytes

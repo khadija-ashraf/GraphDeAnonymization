@@ -1,7 +1,20 @@
 import math
 from scipy import spatial
 
-class UtilsSeedFree:
+class SFUtils:
+
+    @staticmethod
+    def derive_structural_features(G, node, degree_seq_G, BETA, TOP_K, nx):
+        ####### find fd_i, Degree
+        fd_i = SFUtils.get_degree(G, node)
+        ####### find fn_i, Neighborhood
+        fn_i = SFUtils.get_neighborhood(G, node, BETA)
+        ####### find fK_i, Top-K reference distance
+        fK_i = SFUtils.get_top_k_reference_dist(G, node, degree_seq_G, TOP_K, nx)
+        ####### find fl_i, Landmark reference distance
+        fl_i = []
+        return fd_i, fn_i, fK_i, fl_i
+
     # GetTopSimilarity(i, Λu, GAMMA) is a function to return 'GAMMA' no. of users
     @staticmethod
     # def get_top_similarity(i, Au, GAMMA, similarities):
@@ -12,16 +25,25 @@ class UtilsSeedFree:
 
 
     @staticmethod
-    def get_structural_similarity(fd_i, fd_j, fn_i, fn_j, fK_i, fK_j, \
-                                  fl_i, fl_j, c1, c2, c3, c4):
+    def get_structural_similarity(fd_i, fd_j, fn_i, fn_j,\
+                                  fK_i, fK_j, fl_i, fl_j, c1, c2, c3, c4):
+        score = 0
         degree_similarity = 1 - spatial.distance.cosine(fd_i, fd_j)
+        if ~math.isnan(degree_similarity):
+            score += c1 * degree_similarity
+
         neighborhood_similarity = 1 - spatial.distance.cosine(fn_i, fn_j)
-        top_k_similarity = 1 - spatial.distance.cosine(fK_i, fK_j)
-        landmark_ref_similarity = 1 - spatial.distance.cosine(fl_i, fl_j)
-        return c1 * degree_similarity \
-               + c2 * neighborhood_similarity \
-               + c3 * top_k_similarity \
-               + c4 * landmark_ref_similarity
+        if ~math.isnan(neighborhood_similarity):
+            score += c2 * neighborhood_similarity
+
+        top_k_similarity = 1 - spatial.distance.cosine(list(fK_i.values()), list(fK_j.values()))
+        if ~math.isnan(top_k_similarity):
+            score += c3 * top_k_similarity
+
+        # landmark_ref_similarity = 1 - spatial.distance.cosine(fl_i, fl_j)
+        # if ~math.isnan(landmark_ref_similarity):
+        #   score += c4 * landmark_ref_similarity
+        return score
 
     def get_top_similarity(i, Au, GAMMA):
         return 0
