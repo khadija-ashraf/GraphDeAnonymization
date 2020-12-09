@@ -1,10 +1,10 @@
 import math
-from scipy import spatial
+import traceback
 
 class SFUtils:
 
     @staticmethod
-    def derive_structural_features(G, node, degree_seq_G, BETA, TOP_K, nx):
+    def derive_structural_features(G, node, degree_seq_G, BETA, TOP_K, nx, da_nodes):
         ####### find fd_i, Degree
         fd_i = SFUtils.get_degree(G, node)
         ####### find fn_i, Neighborhood
@@ -12,83 +12,77 @@ class SFUtils:
         ####### find fK_i, Top-K reference distance
         fK_i = SFUtils.get_top_k_reference_dist(G, node, degree_seq_G, TOP_K, nx)
         ####### find fl_i, Landmark reference distance
-        fl_i = []
+        fl_i = SFUtils.get_landmark_dist(node, G, da_nodes, nx)
         return fd_i, fn_i, fK_i, fl_i
-
-    # GetTopSimilarity(i, Λu, GAMMA) is a function to return 'GAMMA' no. of users
-    @staticmethod
-    # def get_top_similarity(i, Au, GAMMA, similarities):
-    #     top_similar_auxilary_nodes = []
-    #     # sort the similarity score dict in decreasing order
-    #     sorted_simi = sorted(similarities, key=similarities.__getitem__, reverse=True)
-    #     # get the GAMMA no. of highest scoring j nodes
-
-
-    @staticmethod
-    def get_structural_similarity(fd_i, fd_j, fn_i, fn_j,\
-                                  fK_i, fK_j, fl_i, fl_j, c1, c2, c3, c4):
-        score = 0
-        degree_similarity = 1 - spatial.distance.cosine(fd_i, fd_j)
-        if ~math.isnan(degree_similarity):
-            score += c1 * degree_similarity
-
-        neighborhood_similarity = 1 - spatial.distance.cosine(fn_i, fn_j)
-        if ~math.isnan(neighborhood_similarity):
-            score += c2 * neighborhood_similarity
-
-        top_k_similarity = 1 - spatial.distance.cosine(list(fK_i.values()), list(fK_j.values()))
-        if ~math.isnan(top_k_similarity):
-            score += c3 * top_k_similarity
-
-        # landmark_ref_similarity = 1 - spatial.distance.cosine(fl_i, fl_j)
-        # if ~math.isnan(landmark_ref_similarity):
-        #   score += c4 * landmark_ref_similarity
-        return score
-
-    def get_top_similarity(i, Au, GAMMA):
-        return 0
 
     ####### find fd_i, Degree
     @staticmethod
     def get_degree(G, i):
-        return G.degree()(i)
+        fd_i = []
+        if math.isnan(G.degree()(i)) or math.isinf(G.degree()(i)): return 0
+        fd_i.append(G.degree()(i))
+        return fd_i
 
     @staticmethod
     def get_top_k_reference_dist(G, i, degree_sequence, TOP_K, nx):
         # find all the nodes upto ALPHA-th largest degree,
         # if we set K = ALPHA, then Aa is ideally the set of nodes we are looking for in here
         # for each k in ALPHA from [0, ALPHA] find node group with same k-th largest degree in G1
-        fK_i = dict()
+        # 999 here is to define a very large path distance between i and any k.
+        # the idea is, 999 will never be picked up as its a large path distance
+        fK_i = dict.fromkeys(range(TOP_K), 999)
         for k in range(TOP_K):
             k_th_largest_deg_val = degree_sequence[k]
             k_largest_degree_nodes = []
             for n, d in G.degree():
-                if G.degree()(n) == k_th_largest_deg_val:
+                if i != n and G.degree()(n) == k_th_largest_deg_val:
                     k_largest_degree_nodes.append(n)
 
             # find the shortest path length between 'i' and every 'k_largest_degree_nodes'
             intermediate_dist = []
             for node in k_largest_degree_nodes:
-                intermediate_dist.append(nx.dijkstra_path_length(G, i, node))
+                try:
+                    intermediate_dist.append(nx.dijkstra_path_length(G, i, node))
+                except nx.exception.NetworkXNoPath:
+                    print("K: no path between ", i, " to ", node)
 
             # the shortest path among mutiple kth largest degree nodes
+            if not intermediate_dist: continue
             fK_i[k] = min(intermediate_dist)
         return fK_i
+
+
+    @staticmethod
+    def get_landmark_dist(i, G, da_nodes, nx):
+        #fl_i = dict.fromkeys(da_nodes, 0)
+        fl_i = [0 for i in range(len(da_nodes))]
+        for node in da_nodes:
+            try:
+                fl_i.append(nx.dijkstra_path_length(G, i, node))
+                # fl_i[node] = nx.dijkstra_path_length(G, i, node)
+            except nx.exception.NetworkXNoPath:
+                fl_i.append(-1) # no path exists between two nodes
+                #print("L: no path between ",i, " to ", node)
+        return fl_i
 
 
     @staticmethod
     def get_neighborhood(G, i, BETA):
         # initialise BETA-dimensional vector
         fn_i = [BETA for i in range(BETA)]
-        # find all neighbors of 'i' along with their degree
-        neighbrs_i = G.adj[i]
-        neighbrs_degrees = []
-        for neighbr in neighbrs_i:
-            neighbrs_degrees.append(len(G.adj[neighbr]))  # degree of neighbors
-        neighbrs_degrees = sorted(neighbrs_degrees, reverse=True)
-        fn_i[0: len(neighbrs_degrees)] = neighbrs_degrees
+        try:
+            # find all neighbors of 'i' along with their degree
+            neighbrs_i = G.adj[i]
+            neighbrs_degrees = []
+            for neighbr in neighbrs_i:
+                neighbrs_degrees.append(len(G.adj[neighbr]))  # degree of neighbors
+            neighbrs_degrees = sorted(neighbrs_degrees, reverse=True)
+            fn_i[0: len(neighbrs_degrees)] = neighbrs_degrees
+        except KeyError as e:
+            traceback.print_exc()
         return fn_i
 
+    @staticmethod
     def get_top_degree(degree_list, degree_sequence, ALPHA):
         A = []
         # descending ordered degree list of G, to find the Alpha-th largest degree value
@@ -103,16 +97,26 @@ class SFUtils:
                 A.append(n)
         return A
 
-    def set_alpha(G1, G2):
-        alpha = 0
-        avg_node_numbers = (G1.edges() + G2.edges()) / 2
-        # now find log(node_number)
-        alpha = math.log(avg_node_numbers, 2)
-        return alpha
-
     @staticmethod
     def get_neighbrs(G, node):
         return G.adj[node]
+
+
+    # @staticmethod
+    # def get_cos_simi(a, b):
+    #     return np.inner(a, b) / (norm(a) * norm(b))
+
+    @staticmethod
+    def get_cos_simi(v1, v2):
+        #compute cosine similarity of v1 to v2: (v1 dot v2)/{||v1||*||v2||)
+        sumxx, sumxy, sumyy = 0, 0, 0
+        for i in range(len(v1)):
+            x = v1[i]
+            y = v2[i]
+            sumxx += x * x
+            sumyy += y * y
+            sumxy += x * y
+        return sumxy / math.sqrt(sumxx * sumyy)
 
     @staticmethod
     def analysing_degree(G1, G2):
@@ -163,3 +167,4 @@ class SFUtils:
         degree_sequence = sorted([d for n, d in rgraph.degree()], reverse=True)
         highest_deg_G2 = degree_sequence[0]
         print("max degree rgraph: ", highest_deg_G2)
+

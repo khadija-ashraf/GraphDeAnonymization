@@ -110,3 +110,17 @@ class Utils:
             if visit_dict[n]:
                 filtered_neighbrs.append(n)
         return filtered_neighbrs
+
+    @staticmethod
+    def read_column(filename, column_no):
+        file = open(filename, 'r')
+        lines = file.readlines()
+        file.close()
+        column = []
+
+        for line in lines:
+            parts = line.split()  # split line into parts
+            if len(parts) > 1:
+                column.append(int(parts[column_no]))
+
+        return column
